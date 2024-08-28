@@ -3,7 +3,6 @@ import { uploadMeasure, confirmMeasure, listMeasures } from '../controllers/meas
 
 const router = express.Router();
 
-// Usar o middleware multer na rota de upload
 router.post('/upload', uploadMeasure);
 
 // Outras rotas
