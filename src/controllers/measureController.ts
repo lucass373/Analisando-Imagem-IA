@@ -3,6 +3,8 @@ import path from "path";
 import fs from "fs";
 import { measures } from "../models/measureModel";
 import { uploadImage, generateContentFromImage } from "../service/geminiService";
+import dbCtrl from "../database/databaseController";
+import { v4 as uuidv4 } from "uuid";  // Importa a função para gerar UUIDs
 
 // Valida os dados recebidos na requisição
 function validateRequestData(req: Request) {
@@ -67,53 +69,57 @@ export const uploadMeasure = async (req: Request, res: Response) => {
 
   const validation = validateRequestData(req);
   if (!validation.valid) {
-    return res.status(validation.error.status).json({
-      error_code: validation.error.code,
-      error_description: validation.error.description,
-    });
-  }
-
-  if (findExistingMeasure(customer_code, measure_datetime, measure_type)) {
-    return res.status(409).json({
-      error_code: "DOUBLE_REPORT",
-      error_description: "Leitura do mês já realizada",
-    });
+      return res.status(validation.error.status).json({
+          error_code: validation.error.code,
+          error_description: validation.error.description,
+      });
   }
 
   const imagePath = path.resolve(image);
   if (!fs.existsSync(imagePath)) {
-    return res.status(404).json({
-      error_code: "FILE_NOT_FOUND",
-      error_description: "File not found",
-    });
+      return res.status(404).json({
+          error_code: "FILE_NOT_FOUND",
+          error_description: "File not found",
+      });
   }
 
   try {
-    const imageUri = await uploadImage(imagePath, "image/jpeg");
-    const analysisResult = await generateContentFromImage(imageUri, "Analyze the measure value in this image, only show me the number");
 
-    const newMeasure = {
-      measure_uuid: analysisResult.guid,
-      measure_datetime: new Date(measure_datetime),
-      measure_type: measure_type.toUpperCase(),
-      has_confirmed: false,
-      image_url: imageUri,
-      measure_value: analysisResult.measure_value,
-    };
+      // Verifica se já existe uma medição para o mês
+      const existingMeasure = false; // COLOCAR NO DB Controller a verificação se ja existe a mediçaão
 
-    addNewMeasure(customer_code, newMeasure);
+      if (existingMeasure) {
+          return res.status(409).json({
+              error_code: "DOUBLE_REPORT",
+              error_description: "Leitura do mês já realizada",
+          });
+      }
 
-    res.status(200).json({
-      image_url: newMeasure.image_url,
-      measure_value: newMeasure.measure_value,
-      measure_uuid: newMeasure.measure_uuid,
-    });
+      const imageUri = await uploadImage(imagePath, "image/jpeg");
+      const analysisResult = await generateContentFromImage(imageUri, "Analyze the measure value in this image, only show me the number of measure");
+      const measureUuid = uuidv4();
+      // Usando a função createMeasure
+      await dbCtrl.createMeasure(
+          customer_code,  // Substitua por customer_id se já tiver a conversão de código para ID
+          measureUuid,
+          new Date(measure_datetime).toISOString(),
+          measure_type.toUpperCase(),
+          0,  // has_confirmed como false
+          imageUri,
+          analysisResult.measure_value
+      );
+
+      res.status(200).json({
+          image_url: imageUri,
+          measure_value: analysisResult.measure_value,
+          measure_uuid: measureUuid,
+      });
   } catch (error) {
-    console.error("Error processing request:", error);
-    res.status(500).json({
-      error_code: "INTERNAL_ERROR",
-      error_description: "Error processing request",
-    });
+      console.error("Error processing request:", error);
+      res.status(500).json({
+          error_code: "INTERNAL_ERROR",
+          error_description: "Error processing request",
+      });
   }
 };
 

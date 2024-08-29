@@ -7,8 +7,8 @@
     "start": "node ./build/src/index.js",
     "build": "tsc",
     "dev": "ts-node-dev ./src/index.ts",
-    "migrations": "tsc && node ./build/src/database/migrations/Migrations.js",
-    "test": "jest"
+    "test": "jest",
+    "init-db": "npx ts-node src/database/init.ts"
   },
   "keywords": [],
   "author": "Lucas",
@@ -39,6 +39,8 @@
     "knex": "^2.2.0",
     "multer": "^1.4.5-lts.1",
     "mysql": "^2.18.1",
+    "sqlite": "^5.1.1",
+    "sqlite3": "^5.1.7",
     "uuid": "^8.3.2"
   }
 }
