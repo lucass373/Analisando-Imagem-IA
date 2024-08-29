@@ -35,33 +35,6 @@ function validateRequestData(req: Request) {
   return { valid: true };
 }
 
-// Verifica se uma medição já existe para o mês
-function findExistingMeasure(customer_code: string, measure_datetime: string, measure_type: string) {
-  return measures.find(
-    (m) =>
-      m.customer_code === customer_code &&
-      m.measures.some(
-        (measure) =>
-          measure.measure_datetime.toISOString().substring(0, 7) ===
-            new Date(measure_datetime).toISOString().substring(0, 7) &&
-          measure.measure_type === measure_type.toUpperCase()
-      )
-  );
-}
-
-// Adiciona uma nova medição para o cliente
-function addNewMeasure(customer_code: string, newMeasure: any) {
-  const customerIndex = measures.findIndex((m) => m.customer_code === customer_code);
-
-  if (customerIndex !== -1) {
-    measures[customerIndex].measures.push(newMeasure);
-  } else {
-    measures.push({
-      customer_code,
-      measures: [newMeasure],
-    });
-  }
-}
 
 // Processa a medição com base no caminho do arquivo
 export const uploadMeasure = async (req: Request, res: Response) => {
@@ -86,7 +59,7 @@ export const uploadMeasure = async (req: Request, res: Response) => {
   try {
 
       // Verifica se já existe uma medição para o mês
-      const existingMeasure = false; // COLOCAR NO DB Controller a verificação se ja existe a mediçaão
+      const existingMeasure = await dbCtrl.checkIfMeasureExistsForCurrentMonth(customer_code,measure_datetime, measure_type);
 
       if (existingMeasure) {
           return res.status(409).json({
