@@ -6,7 +6,7 @@ const router = express.Router();
 router.post('/upload', uploadMeasure);
 
 // Outras rotas
-router.post('/confirm', confirmMeasure);
+router.patch('/confirm', confirmMeasure);
 router.get('/measures/:customer_code', listMeasures);
 
 export default router;

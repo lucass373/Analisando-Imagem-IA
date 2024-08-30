@@ -50,4 +50,39 @@ async function checkIfMeasureExistsForCurrentMonth(customer_id: number, measure_
     return !!existingMeasure;  // Retorna true se encontrar uma medição, false caso contrário
 }
 
-export default { createMeasure, checkIfMeasureExistsForCurrentMonth};
+
+async function verifyConfirmed(measure_uuid : string) {
+    const db = await initDb.openDb();
+    if (!db) {
+        throw new Error('Database has not been initialized.');
+    }
+
+
+    const selectQuery = `
+        SELECT has_confirmed FROM measures
+        WHERE measure_uuid = ?
+    `;
+
+    const verifyConfirmed = await db.get(selectQuery, measure_uuid);
+
+    return verifyConfirmed;  
+}
+
+async function confirmMeasure(measure_uuid: string, confirmed_value: string) {
+    const db = await initDb.openDb();
+    if (!db) {
+        throw new Error('Database has not been initialized.');
+    }
+    const updateQuery = `
+        UPDATE measures
+        SET has_confirmed = 1,
+        measure_value = ?
+        WHERE measure_uuid =?
+    `;
+    await db.run(updateQuery, confirmed_value, measure_uuid).then((result) => {
+        console.log(`Measure updated successfully. Rows affected: ${result.changes}`);
+    }).catch((err) => {console.log(`Error on update: ${err}`); });
+
+}
+
+export default { createMeasure, checkIfMeasureExistsForCurrentMonth, verifyConfirmed, confirmMeasure};

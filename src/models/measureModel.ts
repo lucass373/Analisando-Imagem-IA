@@ -3,7 +3,7 @@ interface Measure {
     measure_datetime: Date;
     measure_type: 'WATER' | 'GAS';
     measure_value: string;
-    has_confirmed: boolean;
+    has_confirmed: number;
     image_url: string;
   }
   

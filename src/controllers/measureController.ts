@@ -69,7 +69,7 @@ export const uploadMeasure = async (req: Request, res: Response) => {
       }
 
       const imageUri = await uploadImage(imagePath, "image/jpeg");
-      const analysisResult = await generateContentFromImage(imageUri, "Analyze the measure value in this image, only show me the number of measure");
+      const analysisResult = await generateContentFromImage(imageUri, "Analyze the measure value in this image, show me the number of measure ONLY");
       const measureUuid = uuidv4();
       // Usando a função createMeasure
       await dbCtrl.createMeasure(
@@ -97,7 +97,7 @@ export const uploadMeasure = async (req: Request, res: Response) => {
 };
 
 // Confirma a medição
-export const confirmMeasure = (req: Request, res: Response) => {
+export const confirmMeasure = async (req: Request, res: Response) => {
   const { measure_uuid, confirmed_value } = req.body;
 
   if (!measure_uuid || confirmed_value === undefined) {
@@ -107,7 +107,7 @@ export const confirmMeasure = (req: Request, res: Response) => {
     });
   }
 
-  const customerMeasure = measures.flatMap((m) => m.measures).find((m) => m.measure_uuid === measure_uuid);
+  const customerMeasure = await dbCtrl.verifyConfirmed(measure_uuid);
 
   if (!customerMeasure) {
     return res.status(404).json({
@@ -115,16 +115,16 @@ export const confirmMeasure = (req: Request, res: Response) => {
       error_description: "Measure not found",
     });
   }
-
-  if (customerMeasure.has_confirmed) {
+  
+  if (customerMeasure.has_confirmed == 1) {
     return res.status(409).json({
       error_code: "CONFIRMATION_DUPLICATE",
       error_description: "Measure already confirmed",
     });
   }
 
-  customerMeasure.has_confirmed = true;
-  customerMeasure.measure_value = confirmed_value;
+  // Atualiza a medição para confirmado
+  dbCtrl.confirmMeasure(measure_uuid, confirmed_value)
 
   res.status(200).json({ success: true });
 };
