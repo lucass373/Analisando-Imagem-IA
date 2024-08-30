@@ -112,14 +112,14 @@ export const confirmMeasure = async (req: Request, res: Response) => {
   if (!customerMeasure) {
     return res.status(404).json({
       error_code: "MEASURE_NOT_FOUND",
-      error_description: "Measure not found",
+      error_description: "Leitura do mês já realizada",
     });
   }
   
   if (customerMeasure.has_confirmed == 1) {
     return res.status(409).json({
       error_code: "CONFIRMATION_DUPLICATE",
-      error_description: "Measure already confirmed",
+      error_description: "Leitura do mês já realizada",
     });
   }
 
@@ -130,27 +130,39 @@ export const confirmMeasure = async (req: Request, res: Response) => {
 };
 
 // Lista as medições de um cliente
-export const listMeasures = (req: Request, res: Response) => {
+export const listMeasures = async (req: Request, res: Response) => {
   const { customer_code } = req.params;
   const { measure_type } = req.query;
 
-  const customerMeasure = measures.find((m) => m.customer_code === customer_code);
+  const customerMeasure = await dbCtrl.listCustomerMeasures(customer_code, measure_type.toString());
 
-  if (!customerMeasure) {
+  if (!customerMeasure || customerMeasure.length === 0) {
     return res.status(404).json({
       error_code: "MEASURES_NOT_FOUND",
-      error_description: "No measures found for this customer",
+      error_description: "Nenhuma leitura encontrada",
+    });
+  }
+  
+  if (measure_type != "WATER" && measure_type != "GAS") {
+    return res.status(400).json({
+      error_code: "INVALID_TYPE",
+      error_description: "Tipo de medição não permitida",
     });
   }
 
-  const filteredMeasures = measure_type
-    ? customerMeasure.measures.filter(
-        (m) => m.measure_type.toLowerCase() === (measure_type as string).toLowerCase()
-      )
-    : customerMeasure.measures;
+  const formattedMeasures = customerMeasure.map((measure: any) => ({
+            measure_uuid: measure.measure_uuid || null,
+            measure_datetime: measure.measure_datetime || null,
+            measure_type: measure.measure_type || null,
+            has_confirmed: measure.has_confirmed === 1, // Converte para booleano
+            image_url: measure.image_url || null,
+        }));
 
-  res.status(200).json({
-    customer_code,
-    measures: filteredMeasures,
-  });
+
+console.log(formattedMeasures)
+
+res.status(200).json({
+    customer_code: customer_code,
+    measures: formattedMeasures,
+});
 };

@@ -7,6 +7,6 @@ router.post('/upload', uploadMeasure);
 
 // Outras rotas
 router.patch('/confirm', confirmMeasure);
-router.get('/measures/:customer_code', listMeasures);
+router.get('/:customer_code/list', listMeasures);
 
 export default router;

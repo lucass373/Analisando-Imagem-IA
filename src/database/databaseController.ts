@@ -85,4 +85,27 @@ async function confirmMeasure(measure_uuid: string, confirmed_value: string) {
 
 }
 
-export default { createMeasure, checkIfMeasureExistsForCurrentMonth, verifyConfirmed, confirmMeasure};
+async function listCustomerMeasures(customer_code: string, measure_type : string) {
+    const db = await initDb.openDb();
+    if (!db) {
+        throw new Error('Database has not been initialized.');
+    }
+    const selectQuery = `
+        SELECT 
+                measure_uuid, 
+                measure_datetime, 
+                measure_type, 
+                has_confirmed, 
+                image_url 
+            FROM measures 
+            WHERE customer_id = ?
+            AND measure_type = ?
+    `;
+    const listMeasures = await db.all(selectQuery, customer_code, measure_type);
+
+    return listMeasures;
+
+}
+
+
+export default { createMeasure, checkIfMeasureExistsForCurrentMonth, verifyConfirmed, confirmMeasure, listCustomerMeasures};
